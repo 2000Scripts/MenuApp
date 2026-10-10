@@ -8,27 +8,55 @@ import SignUpScreen from './SignUpScreen';
 import MenuScreen from './Menu';
 import AddMealScreen from './AddMeal';
 import { supabase } from './src/lib/supabase';
+import { fetchIsOwner } from './src/lib/menuApi';
 import type { RootStackParamList } from './src/navigation';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 const App = () => {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoaded, setAuthLoaded] = useState(false);
+  const [roleLoaded, setRoleLoaded] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
       setSession(data.session);
-      setLoading(false);
+      setAuthLoaded(true);
+    }).catch(() => {
+      if (mounted) setAuthLoaded(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      setLoading(false);
+      setAuthLoaded(true);
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    let mounted = true;
+    if (!authLoaded) return;
+    if (!session) {
+      setIsOwner(false);
+      setRoleLoaded(true);
+      return () => { mounted = false; };
+    }
+
+    setRoleLoaded(false);
+    fetchIsOwner(session.user.id)
+      .then(owner => { if (mounted) setIsOwner(owner); })
+      .catch(() => { if (mounted) setIsOwner(false); })
+      .finally(() => { if (mounted) setRoleLoaded(true); });
+
+    return () => { mounted = false; };
+  }, [authLoaded, session]);
+
+  if (!authLoaded || (session && !roleLoaded)) {
     return <View style={styles.loading}><ActivityIndicator size="large" /><Text>Loading…</Text></View>;
   }
 
@@ -38,7 +66,7 @@ const App = () => {
         {session ? (
           <>
             <Stack.Screen name="Menu" component={MenuScreen} options={{ title: 'Menu' }} />
-            <Stack.Screen name="AddMeal" component={AddMealScreen} options={{ title: 'Manage meals' }} />
+            {isOwner && <Stack.Screen name="AddMeal" component={AddMealScreen} options={{ title: 'Manage meals' }} />}
           </>
         ) : (
           <>

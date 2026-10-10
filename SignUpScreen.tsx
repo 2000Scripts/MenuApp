@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -10,6 +11,7 @@ type SignUpFormData = {
   email: string;
   password: string;
   confirmPassword: string;
+  requestedRole: 'customer' | 'owner';
 };
 
 const signUpSchema = yup.object().shape({
@@ -19,12 +21,13 @@ const signUpSchema = yup.object().shape({
   confirmPassword: yup.string()
     .oneOf([yup.ref('password')], 'Passwords must match')
     .required('Confirm password is required'),
+  requestedRole: yup.mixed<'customer' | 'owner'>().oneOf(['customer', 'owner']).required(),
 });
 
 const SignUpScreen = ({ navigation }: any) => {
   const { control, handleSubmit, formState: { errors } } = useForm<SignUpFormData>({
     resolver: yupResolver(signUpSchema),
-    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
+    defaultValues: { name: '', email: '', password: '', confirmPassword: '', requestedRole: 'customer' },
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,10 +38,15 @@ const SignUpScreen = ({ navigation }: any) => {
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        options: { data: { full_name: data.name } },
+        options: { data: { full_name: data.name, requested_role: data.requestedRole } },
       });
       if (error) throw error;
-      Alert.alert('Account created', 'Check your email to confirm your account, then sign in.');
+      Alert.alert(
+        'Account created',
+        data.requestedRole === 'owner'
+          ? 'Check your email to confirm your account. Owner access must be approved by the app administrator before you can manage meals.'
+          : 'Check your email to confirm your account, then sign in.',
+      );
       navigation.navigate('Login');
     } catch (error) {
       Alert.alert('Could not create account', error instanceof Error ? error.message : 'Please try again.');
@@ -81,6 +89,19 @@ const SignUpScreen = ({ navigation }: any) => {
         )}
       />
       {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
+
+      <Text style={styles.roleLabel}>I want to use this app as:</Text>
+      <Controller
+        control={control}
+        name="requestedRole"
+        render={({ field: { onChange, value } }) => (
+          <Picker selectedValue={value} onValueChange={onChange} style={styles.picker}>
+            <Picker.Item label="Customer — browse and order meals" value="customer" />
+            <Picker.Item label="Owner — request menu management access" value="owner" />
+          </Picker>
+        )}
+      />
+      <Text style={styles.roleHint}>Owner access is granted only after administrator approval.</Text>
 
       <Controller
         control={control}
@@ -154,6 +175,20 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
     borderRadius: 25,
+  },
+  roleLabel: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    fontWeight: '600',
+    color: '#26243a',
+  },
+  picker: {
+    width: '100%',
+    backgroundColor: 'white',
+  },
+  roleHint: {
+    color: '#4b4960',
+    marginBottom: 8,
   },
   errorText: {
     color: 'red',

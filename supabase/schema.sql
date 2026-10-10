@@ -8,6 +8,7 @@ create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null default '',
   role public.app_role not null default 'customer',
+  requested_role public.app_role not null default 'customer',
   created_at timestamptz not null default now()
 );
 
@@ -64,8 +65,13 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, full_name, role)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', ''), 'customer');
+  insert into public.profiles (id, full_name, role, requested_role)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
+    'customer',
+    case when new.raw_user_meta_data ->> 'requested_role' = 'owner' then 'owner'::public.app_role else 'customer'::public.app_role end
+  );
   return new;
 end;
 $$;

@@ -38,6 +38,9 @@ const LoginScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
+      <Text style={styles.ownerNote}>
+        Owner access is assigned by the app administrator in Supabase. Sign in with the approved owner account to manage meals.
+      </Text>
 
       <Controller
         control={control}
@@ -94,12 +97,18 @@ const styles = StyleSheet.create({
     textShadowColor: 'grey',
     color: '#26243a',
   },
+  ownerNote: {
+    color: '#4b4960',
+    textAlign: 'center',
+    marginBottom: 18,
+    lineHeight: 20,
+  },
   input: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: 'black',
     padding: 10,
     marginBottom: 10,
-    borderRadius: 5,
+    borderRadius: 50,
   },
   errorText: {
     color: 'red',
