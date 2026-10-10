@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, View, Text, TextInput, Button, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -31,23 +31,19 @@ const SignUpScreen = ({ navigation }: any) => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = async (data: SignUpFormData) => {
+  const onSubmit = async (formData: SignUpFormData) => {
     try {
       setSubmitting(true);
       requireSupabaseConfig();
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: { data: { full_name: data.name, requested_role: data.requestedRole } },
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: { data: { full_name: formData.name, requested_role: formData.requestedRole } },
       });
       if (error) throw error;
-      Alert.alert(
-        'Account created',
-        data.requestedRole === 'owner'
-          ? 'Check your email to confirm your account. Owner access must be approved by the app administrator before you can manage meals.'
-          : 'Check your email to confirm your account, then sign in.',
-      );
-      navigation.navigate('Login');
+      if (!signUpData.session) {
+        navigation.navigate('ConfirmEmail', { email: signUpData.user?.email ?? formData.email });
+      }
     } catch (error) {
       Alert.alert('Could not create account', error instanceof Error ? error.message : 'Please try again.');
     } finally {
@@ -56,7 +52,12 @@ const SignUpScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       
       <Text style={styles.title}>Sign Up</Text>
 
@@ -142,7 +143,7 @@ const SignUpScreen = ({ navigation }: any) => {
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
         <Text style={styles.switchText}>Already have an account? Login</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -156,10 +157,13 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: '#E6E6FA',
+  },
+  contentContainer: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#E6E6FA',
   },
 
   title: {
@@ -177,18 +181,20 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   roleLabel: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     marginTop: 6,
     fontWeight: '600',
     color: '#26243a',
   },
   picker: {
-    width: '100%',
-    backgroundColor: 'white',
+    width: '50%',
+    marginBottom:10,
   },
   roleHint: {
+    marginTop: 1,
     color: '#4b4960',
-    marginBottom: 8,
+    textAlign: 'center',
+    marginBottom: 19,
   },
   errorText: {
     color: 'red',

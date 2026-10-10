@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, View, Text, TextInput, Button, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -16,7 +16,7 @@ const loginSchema = yup.object().shape({
 });
 
 const LoginScreen = ({ navigation }: any) => {
-  const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+  const { control, handleSubmit, getValues, formState: { errors } } = useForm<LoginFormData>({
     resolver: yupResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
@@ -35,8 +35,29 @@ const LoginScreen = ({ navigation }: any) => {
     }
   };
 
+  const resendConfirmation = async () => {
+    const email = getValues('email').trim();
+    if (!email) {
+      Alert.alert('Enter your email', 'Enter your signup email first, then request a new confirmation code.');
+      return;
+    }
+    try {
+      requireSupabaseConfig();
+      const { error } = await supabase.auth.resend({ email, type: 'signup' });
+      if (error) throw error;
+      navigation.navigate('ConfirmEmail', { email });
+    } catch (error) {
+      Alert.alert('Could not resend code', error instanceof Error ? error.message : 'Please try again.');
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       <Text style={styles.title}>Login</Text>
       <Text style={styles.ownerNote}>
         Owner access is assigned by the app administrator in Supabase. Sign in with the approved owner account to manage meals.
@@ -75,20 +96,26 @@ const LoginScreen = ({ navigation }: any) => {
 
       <Button title={submitting ? 'Signing in…' : 'Login'} onPress={handleSubmit(onSubmit)} disabled={submitting} />
 
+      <TouchableOpacity onPress={resendConfirmation}>
+        <Text style={styles.switchText}>Need an email confirmation code?</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
         <Text style={styles.switchText}>Don't have an account? Sign Up</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#E6E6FA',
+  },
+  contentContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#E6E6FA',
-    
   },
   title: {
     fontSize: 24,

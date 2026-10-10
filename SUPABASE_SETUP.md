@@ -6,6 +6,8 @@ Create a project at [supabase.com](https://supabase.com), then copy its Project 
 
 Copy `.env.example` to `.env` and replace both values. Restart Expo after changing environment variables.
 
+Enable email confirmations in **Authentication → Providers → Email**. To send a six-digit code that the app can verify, configure the confirmation email template to display `{{ .Token }}` (rather than requiring a link click). The app's confirmation screen verifies that code with Supabase Auth.
+
 ## 2. Create or update the database schema
 
 For a new project, run `supabase/schema.sql` in **SQL Editor**. It creates profiles, meals, orders, order items, row-level security policies, and the atomic `place_order` database function.

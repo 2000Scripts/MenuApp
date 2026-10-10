@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import type { Session } from '@supabase/supabase-js';
 import LoginScreen from './Login';
 import SignUpScreen from './SignUpScreen';
+import ConfirmEmailScreen from './ConfirmEmail';
 import MenuScreen from './Menu';
 import AddMealScreen from './AddMeal';
 import { supabase } from './src/lib/supabase';
@@ -72,6 +73,7 @@ const App = () => {
           <>
             <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Welcome back' }} />
             <Stack.Screen name="SignUp" component={SignUpScreen} options={{ title: 'Create account' }} />
+            <Stack.Screen name="ConfirmEmail" component={ConfirmEmailScreen} options={{ title: 'Email confirmation' }} />
           </>
         )}
       </Stack.Navigator>
